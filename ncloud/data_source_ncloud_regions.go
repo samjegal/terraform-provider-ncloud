@@ -6,6 +6,7 @@ import (
 
 	"github.com/NaverCloudPlatform/ncloud-sdk-go-v2/ncloud"
 	"github.com/NaverCloudPlatform/ncloud-sdk-go-v2/services/server"
+	"github.com/NaverCloudPlatform/ncloud-sdk-go-v2/services/vserver"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -15,6 +16,10 @@ func dataSourceNcloudRegions() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"code": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"platform_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -35,7 +40,7 @@ func dataSourceNcloudRegionsRead(d *schema.ResourceData, meta interface{}) error
 	client := meta.(*NcloudAPIClient)
 	d.SetId(time.Now().UTC().String())
 
-	regionList, err := getRegions(client)
+	regionList, err := getRegions(client, d.Get("platform_type"))
 	if err != nil {
 		return err
 	}
@@ -67,7 +72,12 @@ func regionsAttributes(d *schema.ResourceData, regions []*Region) error {
 	var s []map[string]interface{}
 	for _, region := range regions {
 		mapping := flattenRegion(region)
-		ids = append(ids, *region.RegionNo)
+
+		if region.RegionNo != nil {
+			ids = append(ids, *region.RegionNo)
+		} else {
+			ids = append(ids, *region.RegionCode)
+		}
 		s = append(s, mapping)
 	}
 
@@ -84,7 +94,25 @@ func regionsAttributes(d *schema.ResourceData, regions []*Region) error {
 	return nil
 }
 
-func getRegions(client *NcloudAPIClient) ([]*Region, error) {
+func getVpcRegions(client *NcloudAPIClient) ([]*Region, error) {
+	resp, err := client.vserver.V2Api.GetRegionList(&vserver.GetRegionListRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp == nil {
+		return nil, fmt.Errorf("no matching regions found")
+	}
+
+	var regions []*Region
+	for _, r := range resp.RegionList {
+		regions = append(regions, GetRegion(r))
+	}
+
+	return regions, nil
+}
+
+func getClassicRegions(client *NcloudAPIClient) ([]*Region, error) {
 	resp, err := client.server.V2Api.GetRegionList(&server.GetRegionListRequest{})
 	if err != nil {
 		return nil, err
@@ -100,4 +128,12 @@ func getRegions(client *NcloudAPIClient) ([]*Region, error) {
 	}
 
 	return regions, nil
+}
+
+func getRegions(client *NcloudAPIClient, platformType interface{}) ([]*Region, error) {
+	if platformType.(string) == "vpc" || client.site == "fin" {
+		return getVpcRegions(client)
+	}
+
+	return getClassicRegions(client)
 }

@@ -91,6 +91,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	if site, ok := d.GetOk("site"); ok {
+		config.Site = site.(string)
+
 		switch site {
 		case "gov":
 			os.Setenv("NCLOUD_API_GW", "https://ncloud.apigw.gov-ntruss.com")
