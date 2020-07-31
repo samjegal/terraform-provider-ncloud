@@ -6,6 +6,7 @@ import (
 
 	"github.com/NaverCloudPlatform/ncloud-sdk-go-v2/ncloud"
 	"github.com/NaverCloudPlatform/ncloud-sdk-go-v2/services/server"
+	"github.com/NaverCloudPlatform/ncloud-sdk-go-v2/services/vserver"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -33,27 +34,28 @@ func dataSourceNcloudZones() *schema.Resource {
 }
 
 func dataSourceNcloudZonesRead(d *schema.ResourceData, meta interface{}) error {
+	var zones []*Zone
+	var err error
+
 	client := meta.(*NcloudAPIClient)
 
 	d.SetId(time.Now().UTC().String())
 
-	regionNo, err := parseRegionNoParameter(client, d)
+	if client.site == "fin" {
+		regionCode, _ := d.Get("region").(*string)
+
+		zones, err = getVpcZones(client, regionCode)
+	} else {
+		regionNo, err2 := parseRegionNoParameter(client, d)
+		if err2 != nil {
+			return err2
+		}
+
+		zones, err = getClassicZones(client, regionNo)
+	}
+
 	if err != nil {
 		return err
-	}
-	resp, err := client.server.V2Api.GetZoneList(&server.GetZoneListRequest{RegionNo: regionNo})
-	if err != nil {
-		return err
-	}
-
-	if resp == nil {
-		return fmt.Errorf("no matching zones found")
-	}
-
-	var zones []*Zone
-
-	for _, zone := range resp.ZoneList {
-		zones = append(zones, GetZone(zone))
 	}
 
 	if len(zones) < 1 {
@@ -63,11 +65,53 @@ func dataSourceNcloudZonesRead(d *schema.ResourceData, meta interface{}) error {
 	return zonesAttributes(d, zones)
 }
 
+func getVpcZones(client *NcloudAPIClient, regionCode *string) ([]*Zone, error) {
+	resp, err := client.vserver.V2Api.GetZoneList(&vserver.GetZoneListRequest{RegionCode: regionCode})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp == nil {
+		return nil, fmt.Errorf("no matching zones found")
+	}
+
+	var zones []*Zone
+
+	for _, zone := range resp.ZoneList {
+		zones = append(zones, GetZone(zone))
+	}
+
+	return zones, nil
+}
+
+func getClassicZones(client *NcloudAPIClient, regionNo *string) ([]*Zone, error) {
+	resp, err := client.server.V2Api.GetZoneList(&server.GetZoneListRequest{RegionNo: regionNo})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp == nil {
+		return nil, fmt.Errorf("no matching zones found")
+	}
+
+	var zones []*Zone
+
+	for _, zone := range resp.ZoneList {
+		zones = append(zones, GetZone(zone))
+	}
+
+	return zones, nil
+}
+
 func zonesAttributes(d *schema.ResourceData, zones []*Zone) error {
 	var ids []string
 
 	for _, zone := range zones {
-		ids = append(ids, ncloud.StringValue(zone.ZoneNo))
+		if zone.ZoneNo != nil {
+			ids = append(ids, ncloud.StringValue(zone.ZoneNo))
+		} else {
+			ids = append(ids, ncloud.StringValue(zone.ZoneCode))
+		}
 	}
 
 	d.SetId(dataResourceIdHash(ids))

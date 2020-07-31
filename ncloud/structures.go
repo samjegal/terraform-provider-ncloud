@@ -111,30 +111,43 @@ func flattenZone(i interface{}) map[string]interface{} {
 	var zoneName *string
 	var zoneCode *string
 	var regionNo *string
+	var regionCode *string
+	m := make(map[string]interface{})
 
 	if f := reflect.ValueOf(i).Elem().FieldByName("ZoneNo"); validField(f) {
 		zoneNo = StringField(f)
+		if *zoneNo != "" {
+			m["zone_no"] = ncloud.StringValue(zoneNo)
+		}
 	}
 	if f := reflect.ValueOf(i).Elem().FieldByName("ZoneName"); validField(f) {
 		zoneName = StringField(f)
+		m["zone_name"] = ncloud.StringValue(zoneName)
 	}
 	if f := reflect.ValueOf(i).Elem().FieldByName("ZoneCode"); validField(f) {
 		zoneCode = StringField(f)
+		m["zone_code"] = ncloud.StringValue(zoneCode)
 	}
 	if f := reflect.ValueOf(i).Elem().FieldByName("ZoneDescription"); validField(f) {
 		zoneDescription = StringField(f)
+		if *zoneDescription != "" {
+			m["zone_description"] = ncloud.StringValue(zoneDescription)
+		}
 	}
 	if f := reflect.ValueOf(i).Elem().FieldByName("RegionNo"); validField(f) {
 		regionNo = StringField(f)
+		if *regionNo != "" {
+			m["region_no"] = ncloud.StringValue(regionNo)
+		}
+	}
+	if f := reflect.ValueOf(i).Elem().FieldByName("RegionCode"); validField(f) {
+		regionCode = StringField(f)
+		if *regionCode != "" {
+			m["region_code"] = ncloud.StringValue(regionCode)
+		}
 	}
 
-	return map[string]interface{}{
-		"zone_no":          ncloud.StringValue(zoneNo),
-		"zone_code":        ncloud.StringValue(zoneCode),
-		"zone_name":        ncloud.StringValue(zoneName),
-		"zone_description": ncloud.StringValue(zoneDescription),
-		"region_no":        ncloud.StringValue(regionNo),
-	}
+	return m
 }
 
 func flattenMemberServerImages(memberServerImages []*server.MemberServerImage) []string {
