@@ -42,6 +42,6 @@ data "ncloud_regions" "regions" {}
 
 var testAccDataSourceNcloudRegionsVPCConfig = `
 data "ncloud_regions" "regions" {
-	platform_type = "vpc"
+	support_vpc = true
 }
 `

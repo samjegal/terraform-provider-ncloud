@@ -19,8 +19,8 @@ func dataSourceNcloudRegions() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"platform_type": {
-				Type:     schema.TypeString,
+			"support_vpc": {
+				Type:     schema.TypeBool,
 				Optional: true,
 			},
 			"regions": {
@@ -40,7 +40,7 @@ func dataSourceNcloudRegionsRead(d *schema.ResourceData, meta interface{}) error
 	client := meta.(*NcloudAPIClient)
 	d.SetId(time.Now().UTC().String())
 
-	regionList, err := getRegions(client, d.Get("platform_type"))
+	regionList, err := getRegions(client, d.Get("support_vpc"))
 	if err != nil {
 		return err
 	}
@@ -130,8 +130,8 @@ func getClassicRegions(client *NcloudAPIClient) ([]*Region, error) {
 	return regions, nil
 }
 
-func getRegions(client *NcloudAPIClient, platformType interface{}) ([]*Region, error) {
-	if platformType.(string) == "vpc" || client.site == "fin" {
+func getRegions(client *NcloudAPIClient, supportVpc interface{}) ([]*Region, error) {
+	if supportVpc.(bool) || client.site == "fin" {
 		return getVpcRegions(client)
 	}
 
