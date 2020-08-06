@@ -64,6 +64,7 @@ func Provider() terraform.ResourceProvider {
 			"ncloud_subnets":               dataSourceNcloudSubnets(),
 			"ncloud_network_acls":          dataSourceNcloudNetworkAcls(),
 			"ncloud_nat_gateway":           dataSourceNcloudNatGateway(),
+			"ncloud_vpc_peering":           dataSourceNcloudVpcPeering(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"ncloud_server":                        resourceNcloudServer(),
@@ -80,6 +81,7 @@ func Provider() terraform.ResourceProvider {
 			"ncloud_network_acl":                   resourceNcloudNetworkACL(),
 			"ncloud_network_acl_rule":              resourceNcloudNetworkACLRule(),
 			"ncloud_nat_gateway":                   resourceNcloudNatGateway(),
+			"ncloud_vpc_peering":                   resourceNcloudVpcPeering(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
